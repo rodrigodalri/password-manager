@@ -1,0 +1,2 @@
+mnemonic==0.19
+pkg-resources==0.0.0
