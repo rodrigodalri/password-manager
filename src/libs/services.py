@@ -54,7 +54,7 @@ def read_password(conn, service_name: str, master_password: str) -> str:
     
     return password_decrypt(token, master_password).decode()
 
-def service_exists(conn, service_name: str, master_password: str) -> bool:
+def service_exists(conn, service_name: str) -> bool:
     """[summary]
 
     Args:
@@ -70,3 +70,18 @@ def service_exists(conn, service_name: str, master_password: str) -> bool:
 
     row = cursor.fetchone()
     return row != None
+
+def list_services(conn) -> list:
+    """[summary]
+
+    Args:
+        conn ([type]): [description]
+
+    Returns:
+        list: [description]
+    """
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM KEYS;")
+
+    rows = cursor.fetchall()
+    return [row[1] for row in rows]
