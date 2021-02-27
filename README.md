@@ -10,7 +10,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/rodrigodalri/password-manager">
-    <img src="assets/logo.png" alt="Logo" width="601" height="203">
+    <img src="assets/logo.png" alt="Logo" width="200" height="200">
   </a>
 
   <h3 align="center">password-manager</h3>
