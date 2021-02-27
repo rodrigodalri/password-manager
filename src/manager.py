@@ -1,51 +1,66 @@
-import sqlite3
-
-from libs.user import add_user, update_user, verify_user 
-from libs.crypto import password_decrypt, password_encrypt, verify_words, secret
+from libs.db import connect_db, get_user_info
+from libs.user import update_user, verify_user 
+from libs.crypto import password_encrypt, verify_words
 from libs.services import add_password, update_password, read_password, service_exists, list_services
 
-def main():
-    
-    try:
-        conn = sqlite3.connect('file:db/fortknox.db?mode=rw', uri=True)
-        first_acess = False
-    except:
-        conn = sqlite3.connect('db/fortknox.db')
-        first_acess = True
-    
-    if first_acess:
-        name = input("Please enter your name: ")
-        master_password = input("Please chose your master password: ")        
+def recover_master(conn,n_words):
+    """[summary]
+
+    Args:
+        conn ([type]): [description]
+        n_words ([type]): [description]
+    """
+    words = input("What is yours 24 words in order?\n")
+    response = verify_words(n_words=n_words,words=words)
+    if response:
+        print("Yours 24 words are corrects!")
+        new_password = input("Now, please enter your new master password: \n")
+        update_user(conn=conn,new_password=new_password)
+    else:
+        print("Sorry, but yours words doesn't match!\nBye Bye")
         
-        add_user(conn=conn,name=name,master_password=master_password)   
+def save_new_password(conn,master_password):
+    """[summary]
 
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT * FROM OWNER;
-        """)
-
-    db_entry = cursor.fetchone()
-
-    name = password_decrypt(token=db_entry[1],password=secret).decode() 
-    master_password = password_decrypt(token=db_entry[2],password=secret).decode() 
-    n_words = password_decrypt(token=db_entry[3],password=secret).decode() 
+    Args:
+        conn ([type]): [description]
+        master_password ([type]): [description]
+    """
+    service_name = input("What is the name of the service?\n")
+    service_password = input("What is the password of the service?\n")
+    if service_exists(conn=conn,service_name=service_name):   
+        print(f"Service {service_name} already exists. Now, enter the new password:")     
+        update_password(conn=conn,service_name=service_name,service_password=service_password,master_password=master_password)
+    else:
+        add_password(conn=conn,service_name=service_name,service_password=service_password,master_password=master_password)
     
-    password = input("Please enter the master password: ")
-    while not verify_user(master_password=master_password,password=password):
-        print("Invalid password\n")
-        password = input("Please enter the master password: ") 
+def get_stored_password(conn,master_password):
+    """[summary]
+
+    Args:
+        conn ([type]): [description]
+        master_password ([type]): [description]
+    """
+    service_name = input("What is the name of the service?\n")
+    if service_exists(conn=conn,service_name=service_name): 
+        service_password = read_password(conn=conn,service_name=service_name,master_password=master_password)
+        print(f"Your {service_name} password is: {service_password}")
+    else:
+        print(f"Service {service_name} not found in database!")
+        
+def list_stored_services(conn):
+    """[summary]
+
+    Args:
+        conn ([type]): [description]
+    """
+    services = list_services(conn=conn)
+    for service in services:
+        print(f"Service: {service}")
+
+def cli_interface(conn,name,master_password,n_words):
     
     print(f"Welcome Back sir {name}!")
-
-    try:
-        conn.execute('''
-            CREATE TABLE KEYS (
-                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                service TEXT NOT NULL,
-                hash TEXT NOT NULL);''') 
-        print("Your safe has been created!\nWhat would you like to store in it today?")
-    except:
-        print("You have a safe, what would you like to do today?")
         
     while True:
         print("--------------------------------------------")
@@ -60,36 +75,16 @@ def main():
         input_ = input("Enter: ")
 
         if input_ == "1":
-            words = input("What is yours 24 words in order?\n")
-            response = verify_words(n_words=n_words,words=words)
-            if response:
-                print("Yours 24 words are corrects!")
-                new_password = input("Now, please enter your new master password: \n")
-                update_user(conn=conn,new_password=new_password)
-            else:
-                print("Sorry, but yours words doesn't match!\nBye Bye")
+            recover_master(conn=conn,n_words=n_words)
 
         elif input_ == "2":
-            service_name = input("What is the name of the service?\n")
-            service_password = input("What is the password of the service?\n")
-            if service_exists(conn=conn,service_name=service_name):   
-                print(f"Service {service_name} already exists. Now, enter the new password:")     
-                update_password(conn=conn,service_name=service_name,service_password=service_password,master_password=master_password)
-            else:
-                add_password(conn=conn,service_name=service_name,service_password=service_password,master_password=master_password)
+            save_new_password(conn=conn,master_password=master_password)
                  
         elif input_ == "3":
-            service_name = input("What is the name of the service?\n")
-            if service_exists(conn=conn,service_name=service_name): 
-                service_password = read_password(conn=conn,service_name=service_name,master_password=master_password)
-                print(f"Your {service_name} password is: {service_password}")
-            else:
-                print(f"Service {service_name} not found in database!")
+            get_stored_password(conn=conn,master_password=master_password)
         
         elif input_ == "4":
-            services = list_services(conn=conn)
-            for service in services:
-                print(f"Service: {service}")
+            list_stored_services(conn=conn)
         
         elif input_ == "5":
             print(f"Good Bye sir {name}!")
@@ -97,6 +92,18 @@ def main():
             
         else:
             print("Wrong input, please try again")
+         
+def main():
+    
+    conn = connect_db() 
+    name,master_password,n_words = get_user_info(conn=conn)
+    
+    password = input("Please enter the master password: ")
+    while not verify_user(master_password=master_password,password=password):
+        print("Invalid password\n")
+        password = input("Please enter the master password: ") 
+    
+    cli_interface(conn,name,master_password,n_words)
 
 if __name__== "__main__":
     main()
