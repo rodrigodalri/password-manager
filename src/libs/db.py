@@ -2,7 +2,7 @@ import sqlite3
 from libs.user import add_user
 from libs.crypto import password_decrypt, secret
 
-def connect_db() -> Connection:
+def connect_db():
     """[summary]
 
     Returns:
@@ -13,7 +13,6 @@ def connect_db() -> Connection:
         first_acess = False
     except:
         conn = sqlite3.connect('db/fortknox.db')
-        create_keys_table(conn=conn)
         first_acess = True
     
     if first_acess:
@@ -21,6 +20,7 @@ def connect_db() -> Connection:
         master_password = input("Please chose your master password: ")        
         
         add_user(conn=conn,name=name,master_password=master_password)   
+        create_keys_table(conn=conn)
     
     return conn
 
