@@ -1,47 +1,8 @@
 import sqlite3
-from hashlib import sha256
-from mnemonic import Mnemonic
 
-def create_mnemonic(language,master_password):
-    mnemo = Mnemonic(language)
-    n_words = mnemo.generate(strength=256)
-    seed = mnemo.to_seed(n_words, passphrase=master_password)
-    entropy = mnemo.to_entropy(n_words)   
-    
-    return (n_words,seed,entropy)
-
-def add_user(conn,name,master_password):
-    
-    n_words, seed, entropy = create_mnemonic("english",master_password)
-    print("Save the 24 words in offline world:")
-    print(f"{n_words}\n")
-    
-    conn.execute('''
-            CREATE TABLE OWNER (
-                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                master TEXT NOT NULL,
-                n_words TEXT NOT NULL);''')      
-    conn.execute("""
-                INSERT INTO OWNER (name, master, n_words)
-                VALUES (?, ?, ?)
-                """, (name,master_password,n_words))  
-    conn.commit() 
-    print("Your identity has been saved!\nCongratulations!")
-
-def update_user(conn,new_password):
-    conn.execute("""
-        UPDATE OWNER
-        SET master = ?
-        """, (new_password,))
-
-    conn.commit()
-
-def verify_user(master_password, password):
-    return True if master_password == password else False
-
-def verify_words(n_words,words):
-    return True if n_words == words else False
+from libs.user import add_user, update_user, verify_user 
+from libs.crypto import password_decrypt, password_encrypt, verify_words, secret
+from libs.services import add_password, update_password, read_password, service_exists
 
 def main():
     
@@ -56,8 +17,7 @@ def main():
         name = input("Please enter your name: ")
         master_password = input("Please chose your master password: ")        
         
-        add_user(conn,name,master_password)
-           
+        add_user(conn=conn,name=name,master_password=master_password)   
 
     cursor = conn.cursor()
     cursor.execute("""
@@ -65,12 +25,13 @@ def main():
         """)
 
     db_entry = cursor.fetchone()
-    name = db_entry[1]
-    master_password = db_entry[2]
-    n_words = db_entry[3]
+
+    name = password_decrypt(token=db_entry[1],password=secret).decode() 
+    master_password = password_decrypt(token=db_entry[2],password=secret).decode() 
+    n_words = password_decrypt(token=db_entry[3],password=secret).decode() 
     
     password = input("Please enter the master password: ")
-    while not verify_user(master_password, password):
+    while not verify_user(master_password=master_password,password=password):
         print("Invalid password\n")
         password = input("Please enter the master password: ") 
     
@@ -98,24 +59,30 @@ def main():
 
         if input_ == "1":
             words = input("What is yours 24 words in order?\n")
-            response = verify_words(n_words,words)
+            response = verify_words(n_words=n_words,words=words)
             if response:
                 print("Yours 24 words are corrects!")
                 new_password = input("Now, please enter your new master password: \n")
-                update_user(conn,new_password)
+                update_user(conn=conn,new_password=new_password)
             else:
                 print("Sorry, but yours words doesn't match!\nBye Bye")
 
-        #TODO save password
         elif input_ == "2":
-            service = input("What is the name of the service?\n")
+            service_name = input("What is the name of the service?\n")
             service_password = input("What is the password of the service?\n")
-            
-        #TODO read password      
+            if service_exists(conn=conn,service_name=service_name,master_password=master_password):   
+                print(f"Service {service_name} already exists. Now, enter the new password:")     
+                update_password(conn=conn,service_name=service_name,service_password=service_password,master_password=master_password)
+            else:
+                add_password(conn=conn,service_name=service_name,service_password=service_password,master_password=master_password)
+                 
         elif input_ == "3":
-            service = input("What is the name of the service?\n")
-            
-                
+            service_name = input("What is the name of the service?\n")
+            if service_exists(conn=conn,service_name=service_name,master_password=master_password): 
+                service_password = read_password(conn=conn,service_name=service_name,master_password=master_password)
+                print(f"Your {service_name} password is: {service_password}")
+            else:
+                print(f"Service {service_name} not found in database!")
         elif input_ == "4":
             break
             
