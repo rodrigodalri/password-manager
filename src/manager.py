@@ -2,7 +2,7 @@ import sqlite3
 
 from libs.user import add_user, update_user, verify_user 
 from libs.crypto import password_decrypt, password_encrypt, verify_words, secret
-from libs.services import add_password, update_password, read_password, service_exists
+from libs.services import add_password, update_password, read_password, service_exists, list_services
 
 def main():
     
@@ -48,13 +48,15 @@ def main():
         print("You have a safe, what would you like to do today?")
         
     while True:
-        print("\n")
+        print("--------------------------------------------")
         print("Commands:")
         print("Press 1 : to recover your master password")
         print("Press 2 : to save a new password")
         print("Press 3 : to get a stored password")
-        print("Press 4 : to quit")
-        print("\n")
+        print("Press 4 : to list all stored services")
+        print("Press 5 : to quit")
+        print("--------------------------------------------")
+
         input_ = input("Enter: ")
 
         if input_ == "1":
@@ -70,7 +72,7 @@ def main():
         elif input_ == "2":
             service_name = input("What is the name of the service?\n")
             service_password = input("What is the password of the service?\n")
-            if service_exists(conn=conn,service_name=service_name,master_password=master_password):   
+            if service_exists(conn=conn,service_name=service_name):   
                 print(f"Service {service_name} already exists. Now, enter the new password:")     
                 update_password(conn=conn,service_name=service_name,service_password=service_password,master_password=master_password)
             else:
@@ -78,12 +80,19 @@ def main():
                  
         elif input_ == "3":
             service_name = input("What is the name of the service?\n")
-            if service_exists(conn=conn,service_name=service_name,master_password=master_password): 
+            if service_exists(conn=conn,service_name=service_name): 
                 service_password = read_password(conn=conn,service_name=service_name,master_password=master_password)
                 print(f"Your {service_name} password is: {service_password}")
             else:
                 print(f"Service {service_name} not found in database!")
+        
         elif input_ == "4":
+            services = list_services(conn=conn)
+            for service in services:
+                print(f"Service: {service}")
+        
+        elif input_ == "5":
+            print(f"Good Bye sir {name}!")
             break
             
         else:
