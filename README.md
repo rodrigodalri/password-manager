@@ -1,4 +1,4 @@
-# python-codes: a python code set
+# password-manager
 
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
