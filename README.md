@@ -50,7 +50,7 @@ apt-get install python3
 ### Installation
 1. Clone the repo
 ```sh
-git clone https://github.com/rodrigodalri/python-codes.git
+git clone https://github.com/rodrigodalri/password-manager.git
 ```
 2. Create venv
 ```sh
